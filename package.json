@@ -1,0 +1,87 @@
+{
+  "name": "unified-comms",
+  "version": "1.0.0",
+  "description": "Unified communication hub for Gmail, Outlook, Slack, Teams, Telegram, and Discord",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "cd server && npm install",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "electron",
+    "communication",
+    "unified"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^24.9.1",
+    "png-to-ico": "3.0.1"
+  },
+  "dependencies": {
+    "@ghostery/adblocker-electron": "2.14.1",
+    "@tensorflow/tfjs": "4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "4.22.0",
+    "canvas": "3.2.1",
+    "cross-fetch": "4.1.0",
+    "electron-chrome-extensions": "^3.10.1",
+    "electron-store": "^8.1.0",
+    "nsfwjs": "4.2.1"
+  },
+  "build": {
+    "appId": "com.unifiedcomms.app",
+    "productName": "UnifiedComms",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "server",
+        "filter": ["**/*", "!.gitignore"]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/nsfwjs/**/*",
+      "node_modules/@tensorflow/tfjs/**/*",
+      "node_modules/@tensorflow/tfjs-backend-wasm/**/*",
+      "node_modules/canvas/**/*",
+      "node_modules/@ghostery/**/*",
+      "src/combined-preload.js",
+      "src/blur-content.js",
+      "src/blur-preload.js",
+      "src/blur-offscreen.js"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico"
+    }
+  }
+}
