@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "mac",
+  "license": "ISC",
+  "dependencies": {
+    "awesome-phonenumber": "^6.12.0",
+    "body-parser": "^1.20.2",
+    "concurrently": "^7.6.0",
+    "cookie-parser": "^1.4.6",
+    "cookie-session": "^2.1.0",
+    "dotenv": "^16.0.0",
+    "express": "^4.19.2",
+    "hpp": "^0.2.3",
+    "http-status": "^1.7.4",
+    "jimp": "^0.22.12",
+    "mongoose": "^8.3.4",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "logkitx": "^1.0.1",
+    "request-ip": "^3.3.0",
+    "validator": "^13.11.0"
+  }
+}
