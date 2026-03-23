@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #0d0d1a;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    user-select: none;
+  }
+
+  /* Animated background particles */
+  .bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, #1a1040 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, #0a1a3a 0%, transparent 60%),
+                radial-gradient(ellipse at 60% 80%, #1a0a2e 0%, transparent 60%),
+                #0d0d1a;
+  }
+
+  /* Orbiting service icons ring */
+  .orbit-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 780px; height: 780px;
+    margin: -390px 0 0 -390px;
+    border-radius: 50%;
+    border: 1px solid rgba(123,140,255,0.15);
+    animation: ring-spin 8s linear infinite;
+    opacity: 0;
+  }
+  .orbit-ring.visible { animation: ring-spin 8s linear infinite, ring-fadein 0.6s ease forwards; }
+
+  @keyframes ring-spin { to { transform: rotate(360deg); } }
+  @keyframes ring-fadein { to { opacity: 1; } }
+
+  .orbit-icon {
+    position: absolute;
+    width: 96px; height: 96px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    animation: counter-spin 8s linear infinite;
+  }
+  @keyframes counter-spin { to { transform: rotate(-360deg); } }
+
+  .orbit-icon img { width: 64px; height: 64px; }
+
+  /* Position each icon around the ring — half icon size = 48px, radius = 390px, diagonal offset = 390*0.707 = 276px */
+  .orbit-icon:nth-child(1) { top: -48px; left: calc(50% - 48px); }
+  .orbit-icon:nth-child(2) { top: calc(50% - 48px - 276px); right: calc(50% - 48px - 276px); }
+  .orbit-icon:nth-child(3) { top: calc(50% - 48px); right: -48px; }
+  .orbit-icon:nth-child(4) { bottom: calc(50% - 48px - 276px); right: calc(50% - 48px - 276px); }
+  .orbit-icon:nth-child(5) { bottom: -48px; left: calc(50% - 48px); }
+  .orbit-icon:nth-child(6) { bottom: calc(50% - 48px - 276px); left: calc(50% - 48px - 276px); }
+  .orbit-icon:nth-child(7) { top: calc(50% - 48px); left: -48px; }
+  .orbit-icon:nth-child(8) { top: calc(50% - 48px - 276px); left: calc(50% - 48px - 276px); }
+
+  /* Center logo */
+  .logo-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+    transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
+    z-index: 10;
+  }
+  .logo-wrap.visible {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  .logo-wrap img {
+    width: 280px; height: 280px;
+    border-radius: 48px;
+    filter: drop-shadow(0 0 50px rgba(123,140,255,0.7)) drop-shadow(0 0 100px rgba(167,139,250,0.4));
+  }
+
+  /* 3D tilt effect on logo */
+  .logo-wrap.tilt {
+    animation: logo-tilt 3s ease-in-out infinite;
+  }
+  @keyframes logo-tilt {
+    0%, 100% { filter: drop-shadow(0 0 30px rgba(123,140,255,0.6)); transform: translate(-50%, -50%) scale(1) rotateY(0deg); }
+    25% { transform: translate(-50%, -50%) scale(1.05) rotateY(8deg); }
+    75% { transform: translate(-50%, -50%) scale(1.05) rotateY(-8deg); }
+  }
+
+  /* Feature pills */
+  .features {
+    position: absolute;
+    bottom: 160px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 16px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    white-space: nowrap;
+  }
+  .features.visible { opacity: 1; }
+
+  .pill {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 30px;
+    padding: 14px 28px;
+    font-size: 18px;
+    color: rgba(255,255,255,0.7);
+    display: flex; align-items: center; gap: 10px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+  }
+  .pill.visible { transform: translateY(0); opacity: 1; }
+
+  /* Tagline */
+  .tagline {
+    position: absolute;
+    bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    opacity: 0;
+    white-space: nowrap;
+    background: linear-gradient(90deg, #ffd700, #ffec6e, #ffd700, #ffb300);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: opacity 0.6s ease;
+    animation: gold-shine 2s linear infinite paused;
+  }
+  .tagline.visible {
+    opacity: 1;
+    animation-play-state: running;
+  }
+  @keyframes gold-shine {
+    to { background-position: 200% center; }
+  }
+
+  /* Skip hint */
+  .skip {
+    position: absolute;
+    bottom: 20px; right: 24px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .skip:hover { color: rgba(255,255,255,0.5); }
+
+  /* Fade-out overlay */
+  .fadeout {
+    position: absolute; inset: 0;
+    background: #0d0d1a;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    z-index: 100;
+  }
+  .fadeout.active { opacity: 1; }
+
+  /* Glow pulse behind logo */
+  .glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 500px; height: 500px;
+    margin: -250px 0 0 -250px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(123,140,255,0.25) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    animation: glow-pulse 2s ease-in-out infinite paused;
+  }
+  .glow.visible {
+    opacity: 1;
+    animation-play-state: running;
+  }
+  @keyframes glow-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.3); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="glow" id="glow"></div>
+<div class="orbit-ring" id="orbit">
+  <div class="orbit-icon"><img id="ic-gmail" src="" alt="Gmail"></div>
+  <div class="orbit-icon"><img id="ic-outlook" src="" alt="Outlook"></div>
+  <div class="orbit-icon"><img id="ic-slack" src="" alt="Slack"></div>
+  <div class="orbit-icon"><img id="ic-teams" src="" alt="Teams"></div>
+  <div class="orbit-icon"><img id="ic-telegram" src="" alt="Telegram"></div>
+  <div class="orbit-icon"><img id="ic-discord" src="" alt="Discord"></div>
+  <div class="orbit-icon"><img id="ic-whatsapp" src="" alt="WhatsApp"></div>
+  <div class="orbit-icon"><img id="ic-gchat" src="" alt="GChat"></div>
+</div>
+<div class="logo-wrap" id="logo">
+  <img id="logo-img" src="" alt="Unified Comms">
+</div>
+<div class="features" id="features">
+  <div class="pill" id="p1"><img id="pill-adblock" src="" width="26" height="26" style="object-fit:contain;flex-shrink:0;"> Ad Blocker</div>
+  <div class="pill" id="p2"><img id="pill-xblock" src="" width="26" height="26" style="object-fit:contain;flex-shrink:0;"> NSFW Filter</div>
+  <div class="pill" id="p3"><img id="pill-blur" src="" width="26" height="26" style="object-fit:contain;flex-shrink:0;"> Blur Mode</div>
+  <div class="pill" id="p4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Live Notifications</div>
+</div>
+<div class="tagline" id="tagline">Unified Messaging, Simplified.</div>
+<div class="skip" id="skip">PRESS ANY KEY TO SKIP</div>
+<div class="fadeout" id="fadeout"></div>
+
+<script>
+  const { ipcRenderer } = require('electron');
+  const path = require('path');
+
+  // Resolve asset paths
+  const assetBase = 'file:///' + path.join(__dirname, '..', 'assets').replace(/\\/g, '/');
+  document.getElementById('logo-img').src = assetBase + '/icon-256.png';
+  // Pill icons — use actual PNG assets
+  document.getElementById('pill-adblock').src = assetBase + '/adblock.png';
+  document.getElementById('pill-xblock').src  = assetBase + '/xblock.png';
+  document.getElementById('pill-blur').src    = assetBase + '/blur.png';
+  const icons = { gmail:'gmail', outlook:'outlook', slack:'slack', teams:'teams',
+                  telegram:'telegram', discord:'discord', whatsapp:'whatsapp', gchat:'gchat' };
+  const pngIcons = new Set(['gchat', 'outlook', 'teams']);
+  for (const [id, svc] of Object.entries(icons)) {
+    const el = document.getElementById('ic-' + id);
+    if (el) el.src = assetBase + '/icons/' + svc + (pngIcons.has(svc) ? '.png' : '.svg');
+  }
+
+  let skipped = false;
+  function skip() {
+    if (skipped) return;
+    skipped = true;
+    document.getElementById('fadeout').classList.add('active');
+    setTimeout(() => ipcRenderer.send('splash-done'), 600);
+  }
+
+  document.addEventListener('keydown', skip);
+  document.addEventListener('click', skip);
+  document.getElementById('skip').addEventListener('click', skip);
+
+  // Scale the whole splash content to fit any window size
+  function scaleSplash() {
+    const scaleX = window.innerWidth / 1400;
+    const scaleY = window.innerHeight / 900;
+    const scale = Math.min(scaleX, scaleY);
+    document.body.style.transform = `scale(${scale})`;
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.width = (100 / scale) + '%';
+    document.body.style.height = (100 / scale) + '%';
+  }
+  scaleSplash();
+  window.addEventListener('resize', scaleSplash);
+
+  // Animation timeline
+  const t = (ms, fn) => setTimeout(fn, ms);
+
+  // t=0: logo zooms in
+  t(100, () => {
+    document.getElementById('glow').classList.add('visible');
+    document.getElementById('logo').classList.add('visible');
+  });
+
+  // t=800: orbit ring + icons appear
+  t(800, () => {
+    document.getElementById('orbit').classList.add('visible');
+    document.getElementById('logo').classList.add('tilt');
+  });
+
+  // t=1800: feature pills stagger in
+  t(1800, () => {
+    document.getElementById('features').classList.add('visible');
+    ['p1','p2','p3','p4'].forEach((id, i) => {
+      t(i * 120, () => document.getElementById(id).classList.add('visible'));
+    });
+  });
+
+  // t=3200: tagline golden text
+  t(3200, () => document.getElementById('tagline').classList.add('visible'));
+
+  // t=5000: auto fade out
+  t(5000, skip);
+</script>
+</body>
+</html>

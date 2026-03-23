@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Blur Settings</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1e1e2e; color: #cdd6f4; font-size: 13px;
+    user-select: none; overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: #181825; padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #313244; -webkit-app-region: drag;
+  }
+  .header h1 { font-size: 13px; font-weight: 600; color: #cba6f7; flex: 1; }
+  .close-btn {
+    background: none; border: none; color: #6c7086; cursor: pointer;
+    font-size: 15px; -webkit-app-region: no-drag; padding: 2px 6px; border-radius: 4px;
+  }
+  .close-btn:hover { background: #313244; color: #cdd6f4; }
+
+  /* ── Body ── */
+  .body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; justify-content: space-between; }
+  .row label { color: #bac2de; font-size: 12px; }
+
+  /* toggle switch */
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: #313244;
+    border-radius: 20px; cursor: pointer; transition: background 0.2s;
+  }
+  .slider::before {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    left: 3px; top: 3px; background: #6c7086; border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle input:checked + .slider { background: #cba6f7; }
+  .toggle input:checked + .slider::before { transform: translateX(16px); background: #1e1e2e; }
+
+  /* range slider */
+  .slider-row { flex-direction: column; gap: 6px; }
+  .slider-header { display: flex; justify-content: space-between; width: 100%; }
+  .slider-header span { color: #cba6f7; font-size: 12px; font-weight: 600; }
+  input[type=range] {
+    width: 100%; height: 4px; -webkit-appearance: none;
+    background: #313244; border-radius: 4px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    background: #cba6f7; border-radius: 50%;
+  }
+
+  .divider { height: 1px; background: #313244; }
+
+  /* ── Footer — per-service remove/apply ── */
+  .footer {
+    padding: 10px 14px 14px;
+    border-top: 1px solid #313244;
+    display: none;          /* shown by JS when accountId is present */
+    flex-direction: column;
+    gap: 6px;
+  }
+  .footer.visible { display: flex; }
+
+  .service-label {
+    font-size: 10px; color: #6c7086;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .exclude-btn {
+    width: 100%; padding: 8px; border-radius: 6px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .exclude-btn:active { opacity: 0.8; }
+
+  /* "Remove blur" = red pill */
+  .exclude-btn.remove { background: #f38ba8; color: #1e1e2e; }
+  .exclude-btn.remove:hover { background: #eb6f92; }
+
+  /* "Apply blur" = green pill */
+  .exclude-btn.apply { background: #a6e3a1; color: #1e1e2e; }
+  .exclude-btn.apply:hover { background: #94e2d5; }
+
+  .hint { font-size: 10px; color: #45475a; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span>🔵</span>
+  <h1>Blur Settings</h1>
+  <button class="close-btn" id="close-btn">✕</button>
+</div>
+
+<div class="body">
+  <div class="row">
+    <label>Enable blur <span style="color:#45475a;font-size:10px">(Alt+L)</span></label>
+    <label class="toggle">
+      <input type="checkbox" id="enabled-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="row slider-row">
+    <div class="slider-header">
+      <label>Blur amount</label>
+      <span id="blur-val">20px</span>
+    </div>
+    <input type="range" id="blur-amount" min="1" max="60" value="20" step="1">
+  </div>
+
+  <div class="row">
+    <label>Grayscale</label>
+    <label class="toggle">
+      <input type="checkbox" id="gray-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<!-- Per-service footer — hidden until JS sets .visible -->
+<div class="footer" id="footer-section">
+  <div class="service-label" id="service-label"></div>
+  <button class="exclude-btn remove" id="exclude-btn"></button>
+  <div class="hint" id="exclude-hint"></div>
+</div>
+
+<script src="blur-popup.js"></script>
+</body>
+</html>

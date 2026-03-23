@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Comms</title>
+  <script>
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const css = fs.readFileSync(path.join(__dirname, 'styles.css'), 'utf8');
+      const style = document.createElement('style');
+      style.textContent = css;
+      document.head.appendChild(style);
+      // Store asset base for icon src fixing
+      window.__assetBase = 'file:///' + path.join(__dirname, '..', 'assets').replace(/\\/g, '/');
+    } catch(e) { document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="styles.css">'); }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <!-- Title Bar -->
+    <div id="titlebar">
+      <div class="titlebar-content">
+        <div class="titlebar-logo">
+          <img id="titlebar-logo-img" src="../assets/icon-256.png" alt="logo">
+        </div>
+        <div class="titlebar-title">Unified Comms</div>
+        <div class="titlebar-actions">
+          <button id="mark-all-read-btn" class="titlebar-btn mark-all-read-btn hidden" title="Mark all as read">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#43d98c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+          <button id="reload-btn" class="titlebar-btn reload-btn" title="Reload current service">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+            </svg>
+          </button>
+          <!-- Blur: custom PNG icon -->
+          <button id="blur-btn" class="titlebar-btn" title="Blur Settings">
+            <img src="../assets/blur.png" width="22" height="22" style="object-fit:contain;">
+          </button>
+          <!-- Adblock: custom PNG icon -->
+          <button id="adblock-btn" class="titlebar-btn adblock-btn-on" title="Ad Blocker" style="display:flex;align-items:center;">
+            <img id="adblock-icon" src="../assets/adblock.png" width="22" height="22" style="object-fit:contain;flex-shrink:0;"><span id="adblock-count" style="font-size:13px;margin-left:3px;font-variant-numeric:tabular-nums;">0</span>
+          </button>
+          <!-- XBlocker: custom PNG icon -->
+          <button id="xblocker-btn" class="titlebar-btn xblocker-btn-on" title="XBlocker ON — 0 blocked" style="display:flex;align-items:center;">
+            <img id="xblocker-icon" src="../assets/xblock.png" width="22" height="22" style="object-fit:contain;flex-shrink:0;"><span id="xblocker-count" style="font-size:13px;margin-left:3px;font-variant-numeric:tabular-nums;">0</span>
+          </button>
+          <button id="extensions-btn" class="titlebar-btn" title="Extensions">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.5 2.5 0 0 1 0 5H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.5 2.5 0 0 1 5 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/>
+            </svg>
+          </button>
+          <button id="settings-btn" class="titlebar-btn" title="Settings">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f9a825" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="window-controls">
+          <button id="minimize-btn" class="window-control-btn" title="Minimize">
+            <svg width="16" height="16" viewBox="0 0 12 12"><rect x="0" y="5" width="12" height="2" fill="currentColor"/></svg>
+          </button>
+          <button id="maximize-btn" class="window-control-btn" title="Maximize">
+            <svg width="16" height="16" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+          </button>
+          <button id="close-btn" class="window-control-btn close" title="Close">
+            <svg width="16" height="16" viewBox="0 0 12 12"><path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="main-container">
+      <!-- Sidebar -->
+      <div id="sidebar">
+        <div class="service-icons">
+          <button class="service-icon active" data-service="gmail" title="Gmail">
+            <img src="../assets/icons/gmail.svg" alt="Gmail">
+            <span class="service-label">Gmail</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="gchat" title="Google Chat">
+            <img src="../assets/icons/gchat.png" alt="Google Chat">
+            <span class="service-label">Chat</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="outlook" title="Outlook">
+            <img src="../assets/icons/outlook.png" alt="Outlook">
+            <span class="service-label">Outlook</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="slack" title="Slack">
+            <img src="../assets/icons/slack.svg" alt="Slack">
+            <span class="service-label">Slack</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="teams" title="Teams">
+            <img src="../assets/icons/teams.png" alt="Teams">
+            <span class="service-label">Teams</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="telegram" title="Telegram">
+            <img src="../assets/icons/telegram.svg" alt="Telegram">
+            <span class="service-label">Telegram</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="discord" title="Discord">
+            <img src="../assets/icons/discord.svg" alt="Discord">
+            <span class="service-label">Discord</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+          <button class="service-icon" data-service="whatsapp" title="WhatsApp">
+            <img src="../assets/icons/whatsapp.svg" alt="WhatsApp">
+            <span class="service-label">WhatsApp</span>
+            <span class="notification-badge hidden">0</span>
+          </button>
+        </div>
+        <div class="sidebar-footer">
+          <div id="preload-indicator" class="hidden">
+            <div class="preload-spinner"></div>
+            <span id="preload-label">Loading...</span>
+          </div>
+          <div id="network-indicator" title="Network Status">
+            <div class="network-row">
+              <span id="network-dot"></span>
+              <span id="network-status">Online</span>
+            </div>
+            <span id="network-speed"></span>
+          </div>
+          <div id="memory-indicator" title="Memory Usage">
+            <span id="memory-value">0 MB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div id="content-area">
+        <div id="loading-indicator" class="hidden">
+          <div class="spinner"></div>
+          <p>Loading service...</p>
+        </div>
+        <div id="error-boundary" class="hidden">
+          <div class="error-content">
+            <h2>Failed to load service</h2>
+            <p id="error-message"></p>
+            <button id="retry-btn" class="btn-primary" title="Clear cache and reload this service">Retry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content settings-modal-content">
+        <div class="settings-header">
+          <div class="settings-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f9a825" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <h2 class="settings-title">Settings</h2>
+          <button class="modal-close settings-close">&times;</button>
+        </div>
+
+        <div class="settings-body">
+          <!-- Performance section -->
+          <div class="settings-section">
+            <div class="settings-section-label">Performance</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Destroy views on switch</span>
+                <span class="settings-row-desc">Frees memory when switching services</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="destroy-views-toggle">
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Hardware acceleration</span>
+                <span class="settings-row-desc">Use GPU for rendering</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="hardware-accel-toggle" checked>
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Memory limit</span>
+                <span class="settings-row-desc">Max heap usage before cleanup (MB)</span>
+              </div>
+              <input type="number" id="memory-limit" value="500" min="200" max="2000" class="settings-input-sm">
+            </div>
+          </div>
+
+          <!-- Privacy section -->
+          <div class="settings-section">
+            <div class="settings-section-label">Privacy &amp; Blocking</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <img src="../assets/adblock.png" width="18" height="18" style="object-fit:contain;flex-shrink:0;">
+                <span class="settings-row-title">Ad Blocker</span>
+                <span class="settings-row-desc">Block ads &amp; trackers</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="adblock-settings-toggle" checked>
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <img src="../assets/xblock.png" width="18" height="18" style="object-fit:contain;flex-shrink:0;">
+                <span class="settings-row-title">XBlocker</span>
+                <span class="settings-row-desc">Block NSFW images</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="xblocker-settings-toggle" checked>
+                <span class="settings-toggle-track"><span class="settings-toggle-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- General section -->
+          <div class="settings-section">
+            <div class="settings-section-label">General</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Default service</span>
+                <span class="settings-row-desc">Opens on launch</span>
+              </div>
+              <select id="default-service" class="settings-select">
+                <option value="gmail">Gmail</option>
+                <option value="gchat">Google Chat</option>
+                <option value="outlook">Outlook</option>
+                <option value="slack">Slack</option>
+                <option value="teams">Teams</option>
+                <option value="telegram">Telegram</option>
+                <option value="discord">Discord</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Services section -->
+          <div class="settings-section">
+            <div class="settings-section-label">Services</div>
+            <div id="settings-services-list"></div>
+          </div>
+
+          <!-- Actions section -->
+          <div class="settings-section">
+            <div class="settings-section-label">Data</div>
+            <div class="settings-actions-row">
+              <button id="backup-data-btn" class="settings-action-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Backup
+              </button>
+              <button id="restore-data-btn" class="settings-action-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Restore
+              </button>
+            </div>
+            <div class="settings-actions-row">
+              <button id="clear-cache-btn" class="settings-action-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                Clear All Caches
+              </button>
+              <button id="manage-accounts-btn" class="settings-action-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Manage Accounts
+              </button>
+              <button id="clean-storage-btn" class="settings-action-btn clean-storage-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                Clean Storage
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button id="save-settings-btn" class="settings-save-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extensions Modal -->
+    <div id="extensions-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Extensions</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="extensions-toolbar">
+            <button id="load-extension-btn" class="btn-secondary">Load Unpacked</button>
+            <button id="cws-btn" class="btn-primary">⬇ Chrome Web Store</button>
+          </div>
+          <div id="extensions-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Management Modal -->
+    <div id="account-management-modal" class="modal hidden">
+      <div class="modal-content am-modal-content">
+        <div class="settings-header">
+          <div class="settings-header-icon" style="background:rgba(88,101,242,0.15);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7b8cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h2 class="settings-title">Manage Accounts</h2>
+          <button class="modal-close settings-close">&times;</button>
+        </div>
+        <div class="am-modal-body">
+          <div id="account-management-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clean Storage Modal -->
+    <div id="clean-storage-modal" class="modal hidden">
+      <div class="modal-content clean-storage-modal-content">
+        <div class="settings-header">
+          <div class="settings-header-icon" style="background:rgba(239,68,68,0.15);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </div>
+          <h2 class="settings-title">Clean Storage</h2>
+          <button class="modal-close settings-close">&times;</button>
+        </div>
+        <div class="clean-storage-body">
+          <div id="clean-storage-scanning" class="clean-scanning">
+            <div class="preload-spinner"></div>
+            <span>Scanning for junk files…</span>
+          </div>
+          <div id="clean-storage-empty" class="clean-empty hidden">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#43d98c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Nothing to clean — storage is tidy.</span>
+          </div>
+          <div id="clean-storage-list" class="clean-list hidden"></div>
+        </div>
+        <div id="clean-storage-footer" class="clean-storage-footer hidden">
+          <span id="clean-storage-total" class="clean-total"></span>
+          <button id="clean-storage-delete-btn" class="settings-save-btn clean-delete-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            Delete Selected
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- First-Time Wizard -->
+    <div id="wizard-modal" class="modal hidden">
+      <div class="wizard-modal-content">
+
+        <!-- Step 1: Welcome -->
+        <div class="wizard-step active" id="wizard-step-1">
+          <div class="wizard-glow"></div>
+          <div class="wizard-logo-wrap">
+            <img src="../assets/icon-256.png" class="wizard-logo-img" alt="logo">
+          </div>
+          <div class="wizard-headline">All your apps,<br>one place.</div>
+          <div class="wizard-sub">Gmail, Outlook, Slack, Teams, Telegram, Discord, WhatsApp and Google Chat — unified in one window with multi-account support.</div>
+
+          <div class="wizard-feature-grid">
+            <div class="wizard-feature-card">
+              <div class="wizard-feature-icon" style="background:rgba(88,101,242,0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7b8cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </div>
+              <div class="wizard-feature-label">8 Services</div>
+            </div>
+            <div class="wizard-feature-card">
+              <div class="wizard-feature-icon" style="background:rgba(67,181,129,0.15);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#43b581" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="wizard-feature-label">Multi-Account</div>
+            </div>
+            <div class="wizard-feature-card">
+              <div class="wizard-feature-icon" style="background:rgba(249,168,37,0.15);">
+                <img src="../assets/adblock.png" width="20" height="20" style="object-fit:contain;">
+              </div>
+              <div class="wizard-feature-label">Ad Blocker</div>
+            </div>
+            <div class="wizard-feature-card">
+              <div class="wizard-feature-icon" style="background:rgba(167,139,250,0.15);">
+                <img src="../assets/blur.png" width="20" height="20" style="object-fit:contain;">
+              </div>
+              <div class="wizard-feature-label">Blur Mode</div>
+            </div>
+          </div>
+
+          <div class="wizard-footer">
+            <div class="wizard-dots">
+              <div class="wizard-dot active"></div>
+              <div class="wizard-dot"></div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="wizard-btn-skip" id="wizard-skip-btn">Skip</button>
+              <button class="wizard-btn-primary" id="wizard-next-btn">
+                Get Started
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Services ready -->
+        <div class="wizard-step" id="wizard-step-2">
+          <div class="wizard-step2-header">
+            <div class="wizard-step2-title">Your services are ready</div>
+            <div class="wizard-step2-sub">Right-click any sidebar icon to add more accounts or switch between them.</div>
+          </div>
+          <div class="wizard-service-grid">
+            <div class="wizard-svc-item"><img src="../assets/icons/gmail.svg" class="wizard-svc-icon"><span class="wizard-svc-name">Gmail</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/gchat.png" class="wizard-svc-icon"><span class="wizard-svc-name">Google Chat</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/outlook.png" class="wizard-svc-icon"><span class="wizard-svc-name">Outlook</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/slack.svg" class="wizard-svc-icon"><span class="wizard-svc-name">Slack</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/teams.png" class="wizard-svc-icon"><span class="wizard-svc-name">Teams</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/telegram.svg" class="wizard-svc-icon"><span class="wizard-svc-name">Telegram</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/discord.svg" class="wizard-svc-icon"><span class="wizard-svc-name">Discord</span><span class="wizard-svc-badge">Ready</span></div>
+            <div class="wizard-svc-item"><img src="../assets/icons/whatsapp.svg" class="wizard-svc-icon"><span class="wizard-svc-name">WhatsApp</span><span class="wizard-svc-badge">Ready</span></div>
+          </div>
+          <div class="wizard-footer">
+            <div class="wizard-dots">
+              <div class="wizard-dot"></div>
+              <div class="wizard-dot active"></div>
+            </div>
+            <button class="wizard-btn-primary" id="wizard-finish-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Start Using App
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Fix asset image paths using the base computed in <head>
+    try {
+      if (window.__assetBase) {
+        document.querySelectorAll('img[src^="../assets"]').forEach(img => {
+          const rel = img.getAttribute('src').replace('../assets/', '');
+          img.src = window.__assetBase + '/' + rel;
+        });
+      }
+    } catch(e) {}    window.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.service-icon')) e.preventDefault();
+    }, false);
+  </script>
+</body>
+</html>
