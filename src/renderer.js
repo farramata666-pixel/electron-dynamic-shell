@@ -99,16 +99,7 @@ window.addEventListener('resize', () => applyResponsiveLayout(_lastWinW, _lastWi
 function reportLayoutDimensions() { applyResponsiveLayout(_lastWinW, _lastWinH); }
 
 // Canonical web URLs — use Chrome UA in main process so services don't block Electron
-const SERVICES = {
-  gmail:     { name: 'Gmail',        url: 'https://mail.google.com/mail/u/0/#inbox' },
-  gchat:     { name: 'Google Chat',  url: 'https://mail.google.com/chat/u/0/#chat/home' },
-  outlook:   { name: 'Outlook',      url: 'https://outlook.live.com/mail/0/inbox' },
-  slack:     { name: 'Slack',        url: 'https://app.slack.com/client' },
-  teams:     { name: 'Teams',        url: 'https://teams.live.com' },
-  telegram:  { name: 'Telegram',     url: 'https://web.telegram.org/k/' },
-  discord:   { name: 'Discord',      url: 'https://discord.com/app' },
-  whatsapp:  { name: 'WhatsApp',     url: 'https://web.whatsapp.com' },
-};
+let SERVICES = {};
 
 class ServiceManager {
   constructor() {
@@ -127,46 +118,158 @@ class ServiceManager {
   }
 
   async init() {
-    console.log(`[Init] starting (${IS_SIDEBAR ? 'sidebar' : 'titlebar'})...`);
-    this.settings = await ipcRenderer.invoke('get-settings');
-    await this.loadAccounts();
-    this.setupEventListeners();
-    this.setupKeyboardShortcuts();
-    this.setupIPCListeners();
+    try {
+      console.log(`[Init] starting (${IS_SIDEBAR ? 'sidebar' : 'titlebar'})...`);
+      SERVICES = await ipcRenderer.invoke('get-services') || {};
+      this.settings = await ipcRenderer.invoke('get-settings') || {};
+      console.log('[Init] SERVICES:', Object.keys(SERVICES).length);
 
-    // Apply responsive layout now that DOM is ready
-    applyResponsiveLayout(_lastWinW, _lastWinH);
-
-    if (IS_TITLEBAR) {
-      // Titlebar instance: only handle top chrome, no service switching
-      console.log('[Init] titlebar mode — skipping service init');
+      await this.loadAccounts();
+      if (IS_SIDEBAR) this._renderServiceIcons();
       this.setupEventListeners();
+      this.setupKeyboardShortcuts();
+      this.setupIPCListeners();
+
+      // Apply responsive layout now that DOM is ready
+      applyResponsiveLayout(_lastWinW, _lastWinH);
+
+      if (IS_TITLEBAR) {
+        console.log('[Init] titlebar mode — skipping service init');
+        ipcRenderer.invoke('get-extensions').then(exts => this.renderExtensionToolbar(exts));
+        return;
+      }
+
+      // Load disabled services from settings
+      this.disabledServices = new Set(this.settings.disabledServices || []);
+      this.disabledAccounts = new Set(this.settings.disabledAccounts || []);
+      for (const sId of this.disabledServices) this._applyServiceDisabledStyle(sId, true);
+
+      this._initNetworkIndicator();
+
+      if (Object.keys(SERVICES).length === 0) {
+        console.log('[Init] No services found, showing Setup Wizard');
+        this.showSetupWizard();
+      } else if (!this.settings.firstTimeSetup) {
+        this.showFirstTimeWizard();
+      } else {
+        let defaultService = this.settings.defaultService || 'gmail';
+        if (this.disabledServices.has(defaultService)) {
+          defaultService = Object.keys(SERVICES).find(s => !this.disabledServices.has(s)) || (Object.keys(SERVICES)[0] || 'gmail');
+        }
+        if (Object.keys(SERVICES).length > 0) {
+          await this.switchService(defaultService);
+          this._scheduleBackgroundPreloads(defaultService);
+        }
+      }
       ipcRenderer.invoke('get-extensions').then(exts => this.renderExtensionToolbar(exts));
+    } catch (e) {
+      console.error('[Init] Fatal error:', e);
+    }
+  }
+
+  showSetupWizard() {
+    console.log('[SetupWizard] Showing...');
+    ipcRenderer.send('modal-open');
+    const modal = document.getElementById('setup-wizard-modal');
+    if (!modal) {
+      console.error('[SetupWizard] Modal element not found!');
       return;
     }
+    const errorEl = document.getElementById('setup-wizard-error');
+    const nameInput = document.getElementById('new-service-name');
+    const urlInput = document.getElementById('new-service-url');
+    const addBtn = document.getElementById('setup-wizard-add-btn');
 
-    // Load disabled services from settings
-    this.disabledServices = new Set(this.settings.disabledServices || []);
-    this.disabledAccounts = new Set(this.settings.disabledAccounts || []);
-    // Apply disabled visual state to sidebar icons
-    for (const sId of this.disabledServices) this._applyServiceDisabledStyle(sId, true);
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex'; // Force display
+    modal.style.opacity = '1';
+    modal.style.zIndex = '9999';
+    
+    if (nameInput) nameInput.value = '';
+    if (urlInput) urlInput.value = '';
+    if (errorEl) errorEl.classList.add('hidden');
 
-    // Network + loading indicators (sidebar only)
-    this._initNetworkIndicator();
+    if (addBtn) {
+      addBtn.onclick = async () => {
+        const name = nameInput.value.trim();
+        const url = urlInput.value.trim();
 
-    // Sidebar instance: full service management
-    if (!this.settings.firstTimeSetup) {
-      this.showFirstTimeWizard();
-    } else {
-      // Fall back to first enabled service if default is disabled
-      let defaultService = this.settings.defaultService || 'gmail';
-      if (this.disabledServices.has(defaultService)) {
-        defaultService = Object.keys(SERVICES).find(s => !this.disabledServices.has(s)) || 'gmail';
-      }
-      await this.switchService(defaultService);
-      this._scheduleBackgroundPreloads(defaultService);
+        if (!name) {
+          if (errorEl) {
+            errorEl.textContent = 'Please enter a name.';
+            errorEl.classList.remove('hidden');
+          }
+          return;
+        }
+        if (!url.startsWith('https://')) {
+          if (errorEl) {
+            errorEl.textContent = 'URL must start with https://';
+            errorEl.classList.remove('hidden');
+          }
+          return;
+        }
+
+        const serviceId = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const result = await ipcRenderer.invoke('save-service', { id: serviceId, name, url });
+
+        if (result.success) {
+          SERVICES[serviceId] = { name, url };
+          await this.loadAccounts();
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+          ipcRenderer.send('modal-close');
+          this._renderServiceIcons();
+          await this.switchService(serviceId);
+        } else {
+          if (errorEl) {
+            errorEl.textContent = 'Failed to save service: ' + (result.error || 'Unknown error');
+            errorEl.classList.remove('hidden');
+          }
+        }
+      };
     }
-    ipcRenderer.invoke('get-extensions').then(exts => this.renderExtensionToolbar(exts));
+  }
+
+  _renderServiceIcons() {
+    const container = document.getElementById('service-icons-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const pngServices = ['gchat', 'outlook', 'teams'];
+    Object.entries(SERVICES).forEach(([serviceId, service]) => {
+      const ext = pngServices.includes(serviceId) ? 'png' : 'svg';
+      const iconSrc = window.__assetBase ? `${window.__assetBase}/icons/${serviceId}.${ext}` : `../assets/icons/${serviceId}.${ext}`;
+
+      const btn = document.createElement('button');
+      btn.className = 'service-icon';
+      btn.dataset.service = serviceId;
+      btn.title = service.name;
+      btn.innerHTML = `
+        <img src="${iconSrc}" alt="${service.name}" onerror="this.src='../assets/icon-256.png';">
+        <span class="service-label">${service.name.split(' ')[0]}</span>
+        <span class="notification-badge hidden">0</span>
+      `;
+
+      btn.addEventListener('click', (e) => this.switchService(serviceId));
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showAccountContextMenu(serviceId, btn);
+      }, true); // capture phase
+
+      // Hover toggle button
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'svc-toggle-btn';
+      toggleBtn.title = 'Turn off service';
+      toggleBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`;
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleService(serviceId);
+      });
+      btn.appendChild(toggleBtn);
+
+      container.appendChild(btn);
+    });
   }
 
   async preloadService(serviceId) {
@@ -375,6 +478,7 @@ class ServiceManager {
     }
 
     document.getElementById('reload-btn').addEventListener('click', () => {
+      console.log('Button clicked: reload-btn');
       ipcRenderer.invoke('reload-view', { accountId: this.currentAccountId || null });
       const btn = document.getElementById('reload-btn');
       btn.classList.add('spinning');
@@ -411,29 +515,8 @@ class ServiceManager {
       this.updateXBlockerBtn(enabled, count);
     });
 
-    document.querySelectorAll('.service-icon').forEach(icon => {
-      icon.addEventListener('click', (e) => this.switchService(e.currentTarget.dataset.service));
-      icon.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const serviceId = e.currentTarget.dataset.service;
-        console.log('Right-click on service icon:', serviceId);
-        this.showAccountContextMenu(serviceId, e.currentTarget);
-      }, true); // capture phase to ensure it fires first
-
-      // Hover toggle button — appears on hover to turn service on/off
-      const toggleBtn = document.createElement('button');
-      toggleBtn.className = 'svc-toggle-btn';
-      toggleBtn.title = 'Turn off service';
-      toggleBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 5.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`;
-      toggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleService(icon.dataset.service);
-      });
-      icon.appendChild(toggleBtn);
-    });
-
     document.getElementById('settings-btn').addEventListener('click', () => {
+      console.log('Button clicked: settings-btn');
       if (IS_TITLEBAR) { ipcRenderer.send('sidebar-open-modal', { modal: 'settings' }); return; }
       this.openSettings();
     });
@@ -482,10 +565,10 @@ class ServiceManager {
   }
 
   setupKeyboardShortcuts() {
-    const serviceKeys = ['gmail', 'gchat', 'outlook', 'slack', 'teams', 'telegram', 'discord', 'whatsapp'];
+    const serviceKeys = Object.keys(SERVICES);
     document.addEventListener('keydown', (e) => {
       const key = parseInt(e.key);
-      if (isNaN(key) || key < 1 || key > 8) return;
+      if (isNaN(key) || key < 1 || key > Math.min(serviceKeys.length, 9)) return;
       const serviceId = serviceKeys[key - 1];
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); this.switchService(serviceId); }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); this.cycleAccount(serviceId); }

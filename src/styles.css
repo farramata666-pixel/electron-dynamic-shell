@@ -440,6 +440,7 @@ body {
 
 .modal.hidden {
   display: none;
+  pointer-events: none;
 }
 
 .modal-content {
@@ -499,6 +500,42 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* Setup Wizard Modal */
+.setup-wizard-content {
+  max-width: 450px;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.setup-wizard-content .modal-header h2 {
+  font-size: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: #5865f2;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: center;
 }
 
 /* Settings */

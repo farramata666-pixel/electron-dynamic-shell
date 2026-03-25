@@ -80,47 +80,8 @@
     <div id="main-container">
       <!-- Sidebar -->
       <div id="sidebar">
-        <div class="service-icons">
-          <button class="service-icon active" data-service="gmail" title="Gmail">
-            <img src="../assets/icons/gmail.svg" alt="Gmail">
-            <span class="service-label">Gmail</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="gchat" title="Google Chat">
-            <img src="../assets/icons/gchat.png" alt="Google Chat">
-            <span class="service-label">Chat</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="outlook" title="Outlook">
-            <img src="../assets/icons/outlook.png" alt="Outlook">
-            <span class="service-label">Outlook</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="slack" title="Slack">
-            <img src="../assets/icons/slack.svg" alt="Slack">
-            <span class="service-label">Slack</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="teams" title="Teams">
-            <img src="../assets/icons/teams.png" alt="Teams">
-            <span class="service-label">Teams</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="telegram" title="Telegram">
-            <img src="../assets/icons/telegram.svg" alt="Telegram">
-            <span class="service-label">Telegram</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="discord" title="Discord">
-            <img src="../assets/icons/discord.svg" alt="Discord">
-            <span class="service-label">Discord</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
-          <button class="service-icon" data-service="whatsapp" title="WhatsApp">
-            <img src="../assets/icons/whatsapp.svg" alt="WhatsApp">
-            <span class="service-label">WhatsApp</span>
-            <span class="notification-badge hidden">0</span>
-          </button>
+        <div id="service-icons-container" class="service-icons">
+          <!-- Dynamic buttons will be injected here -->
         </div>
         <div class="sidebar-footer">
           <div id="preload-indicator" class="hidden">
@@ -445,6 +406,28 @@
 
       </div>
     </div>
+    <!-- Setup Wizard Modal -->
+    <div id="setup-wizard-modal" class="modal hidden">
+      <div class="modal-content setup-wizard-content">
+        <div class="modal-header">
+          <h2>Welcome! Let's add your first service</h2>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label for="new-service-name">Service Name</label>
+            <input type="text" id="new-service-name" placeholder="e.g. My Custom App" class="settings-input">
+          </div>
+          <div class="setting-group">
+            <label for="new-service-url">Service URL (HTTPS only)</label>
+            <input type="text" id="new-service-url" placeholder="https://myapp.com" class="settings-input">
+          </div>
+          <div id="setup-wizard-error" class="error-text hidden"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="setup-wizard-add-btn" class="btn-primary">Add Service</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -456,9 +439,14 @@
           img.src = window.__assetBase + '/' + rel;
         });
       }
-    } catch(e) {}    window.addEventListener('contextmenu', (e) => {
+    } catch(e) {
+      console.error('Error fixing asset paths:', e);
+    }
+
+    window.addEventListener('contextmenu', (e) => {
       if (!e.target.closest('.service-icon')) e.preventDefault();
     }, false);
   </script>
+  <script src="renderer.js"></script>
 </body>
 </html>

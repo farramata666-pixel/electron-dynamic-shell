@@ -285,8 +285,22 @@ const overlayIconCache = new Map();
 async function buildOverlayIconCache() {
   if (process.platform !== 'win32') return;
   const { nativeImage } = require('electron');
-  const services = ['gmail','gchat','outlook','slack','teams','telegram','discord','whatsapp'];
-  for (const svc of services) {
+
+  // Fetch services from config
+  const servicesPath = path.join(app.getPath('userData'), 'services.json');
+  let servicesKeys = [];
+  try {
+    if (fs.existsSync(servicesPath)) {
+      const config = JSON.parse(fs.readFileSync(servicesPath, 'utf8'));
+      servicesKeys = Object.keys(config);
+    }
+  } catch (e) {
+    console.error('[Overlay] Failed to read services.json:', e.message);
+  }
+
+  if (servicesKeys.length === 0) return;
+
+  for (const svc of servicesKeys) {
     try {
       const svgPath = path.join(__dirname, '..', 'assets', 'icons', svc + '.svg');
       if (!fs.existsSync(svgPath)) continue;
@@ -498,6 +512,7 @@ async function createWindow() {
 
   extensions = new ElectronChromeExtensions({
     session: mainSession,
+    license: 'GPL-3.0',
     createTab: async (details) => {
       const win = new BrowserWindow({
         width: 800, height: 600,
@@ -614,11 +629,6 @@ async function createWindow() {
   uiView.webContents.loadFile('src/index.html');
   uiView.webContents.on('did-finish-load', () => {
     console.log('[UIView] did-finish-load:', uiView.webContents.getURL());
-    try {
-      uiView.webContents.executeJavaScript(getRendererCode()).catch(e => console.error('[UIView] renderer inject error:', e.message));
-    } catch(e) {
-      console.error('[UIView] renderer read error:', e.message);
-    }
     // Send initial window dimensions so responsive layout applies immediately
     const [w, h] = mainWindow.getContentSize();
     setTimeout(() => uiView.webContents.send('window-resized', { width: w > 200 ? w : 1400, height: h > 200 ? h : 900 }), 100);
@@ -645,11 +655,6 @@ async function createWindow() {
   titlebarView.webContents.loadFile('src/index.html');
   titlebarView.webContents.on('did-finish-load', () => {
     console.log('[TitlebarView] did-finish-load');
-    try {
-      titlebarView.webContents.executeJavaScript(getRendererCode()).catch(e => console.error('[TitlebarView] renderer inject error:', e.message));
-    } catch(e) {
-      console.error('[TitlebarView] renderer read error:', e.message);
-    }
     // Send initial window dimensions so responsive layout applies immediately
     const [w, h] = mainWindow.getContentSize();
     setTimeout(() => titlebarView.webContents.send('window-resized', { width: w > 200 ? w : 1400, height: h > 200 ? h : 900 }), 100);
@@ -1351,6 +1356,8 @@ ipcMain.handle('toggle-xblocker', () => {
 ipcMain.handle('xblocker-classify', async (event, { url: imageUrl }) => {
   if (!xBlockerEnabled || !xBlockerModel) return { blocked: false };
   try {
+    // Note: 'canvas' and 'loadImage' are used here for NSFW classification.
+    // If 'canvas' is not installed (e.g., build issues on Windows), classification is skipped.
     const { createCanvas, loadImage } = require('canvas');
     const img = await loadImage(imageUrl);
     const canvas = createCanvas(img.width, img.height);
@@ -1800,6 +1807,45 @@ ipcMain.on('open-popup-window', (event, { url, partition: p }) => {
 ipcMain.on('open-extension-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'], title: 'Select Extension Directory' });
   if (!result.canceled && result.filePaths.length > 0) loadExtension(result.filePaths[0]);
+});
+
+ipcMain.handle('get-services', () => {
+  const servicesPath = path.join(app.getPath('userData'), 'services.json');
+  try {
+    if (fs.existsSync(servicesPath)) {
+      return JSON.parse(fs.readFileSync(servicesPath, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Main] Failed to read services.json:', e.message);
+  }
+  return {};
+});
+
+ipcMain.handle('save-service', async (event, { id, name, url }) => {
+  const userData = app.getPath('userData');
+  const servicesPath = path.join(userData, 'services.json');
+  
+  // Ensure userData directory exists
+  if (!fs.existsSync(userData)) {
+    fs.mkdirSync(userData, { recursive: true });
+  }
+
+  let services = {};
+  try {
+    if (fs.existsSync(servicesPath)) {
+      services = JSON.parse(fs.readFileSync(servicesPath, 'utf8'));
+    }
+    services[id] = { name, url };
+    fs.writeFileSync(servicesPath, JSON.stringify(services, null, 2));
+    
+    // Refresh icon cache for the new service
+    buildOverlayIconCache();
+    
+    return { success: true };
+  } catch (e) {
+    console.error('[Main] Failed to save service:', e.message);
+    return { success: false, error: e.message };
+  }
 });
 
 ipcMain.handle('get-settings', () => {

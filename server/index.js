@@ -3,7 +3,16 @@
  *******************************************************/
 "use strict";
 
-require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+
+const envPath = path.join(__dirname, ".env");
+if (fs.existsSync(envPath)) {
+  require("dotenv").config({ path: envPath });
+} else {
+  console.warn("[Server] .env file not found. Using default environment variables.");
+}
+
 const http = require("http");
 const app = require("./app");
 

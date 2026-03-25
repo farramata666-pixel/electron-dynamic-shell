@@ -24,7 +24,9 @@ contextBridge.exposeInMainWorld('api', {
       'remove-extension',
       'get-settings',
       'save-settings',
-      'clear-cache'
+      'clear-cache',
+      'get-services',
+      'save-service'
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);
